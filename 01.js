@@ -4,25 +4,27 @@ var argv = require('yargs')
   .demand(['outDir'])
   .argv;
 var fs = require('fs');
+var split2 = require('split2');
 var path = require('path');
 var mkdirp = require('mkdirp');
 var xlsx = require('./xlsx-importer');
 var t = require('through2');
 var _ = require('lodash');
 
-
 process.stdin
-  .pipe((function(){
-    var data = '';
-    return t.obj(function(chunk, enc, next){
-      data += chunk.toString('binary');
-      next();
-    }, function(next){
-      this.push(data);
+  .pipe(split2())
+  .pipe(t.obj(function(filePath, enc, next){
+    var ds = this;
+    fs.readFile(filePath, function(err, buffer) {
+      if (err) {
+        throw err;
+      }
+      ds.push({ path: filePath, buffer: buffer });
       next();
     });
-  })())
-  .pipe(t.obj(function(data, enc, next){
+  }))
+  .pipe(t.obj(function(file, enc, next){
+    var data = file.buffer.toString('binary');
     this.push(xlsx(data)[0].rows());
     next();
   }))
@@ -60,13 +62,18 @@ process.stdin
     next();
   }))
   .pipe(t.obj(function(rows, enc, next){
+    var emitedStreams = {};
     var ds = this;
     var emit = function(key, value) {
-      ds.push({key: key, value: value});
+      if(!emitedStreams[key]) {
+        emitedStreams[key] = [value];
+      } else {
+        emitedStreams[key].push(value);
+      }
+      ds.push({key: key, value: value });
     };
     var padLeft = function (nr, n, str){ return new Array(n-String(nr).length+1).join(str||'0')+nr; };
     var formatDate = function (d) { return d.getUTCFullYear() + '' + padLeft(d.getUTCMonth() + 1, 2) + '' + padLeft(d.getUTCDate(), 2); };
-
     var mogebebi = _.flatten(rows
       .filter(function(row){ return row[6] && row[7] && row[8] && row[10]; })
       .map(function(row){
@@ -74,13 +81,11 @@ process.stdin
           return {n: formatDate(new Date(row[6])) + skesi.trim()[0] + row[10], dabDge: row[6], skesi: skesi.trim(), mama: row[10]};
         });
       }));
-
     emit(rows[0][1], {
       skesi: rows[0][2],
       dabDge: rows[0][3],
       shvilebi: mogebebi.map(function(m){ return m.n; })
     });
-
     mogebebi.forEach(function(m){
       emit(m.mama, {
         shvilebi: [m.n]
@@ -92,14 +97,13 @@ process.stdin
         deda: rows[0][1]
       });
     });
-
     next();
   }))
   .pipe((function(){
     var pushedKeys = {};
     return t.obj(function(o, enc, next){
-      var data = JSON.stringify(o.value)+'\n';
-      var file = argv.outDir+'/'+o.key.toString()+'.json';
+      var data = JSON.stringify(o.value) + '\n';
+      var file = argv.outDir + '/' + o.key.toString() + '.json';
       var ds = this;
       fs.appendFile(file, data, function (err) {
         if (err) { throw err; }

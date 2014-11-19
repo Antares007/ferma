@@ -1,13 +1,13 @@
 var _ = require('lodash');
 var xlsx = require('./xlsx-importer');
 
-var padLeft = function (nr, n, str){
-  return new Array(n-String(nr).length+1).join(str||'0')+nr;
-};
-
-var formatDate = function (d){
-  return d.getUTCFullYear() + '' + padLeft(d.getUTCMonth() + 1, 2) + '' + padLeft(d.getUTCDate(), 2);
-};
+var padLeft = (value, length) =>
+  value.toString().length < length ?  padLeft("0" + value, length) : value;
+var formatDate = (d) => [
+    d.getUTCFullYear(),
+    d.getUTCMonth() + 1,
+    d.getUTCDate()
+  ].map(x => padLeft(x.toString(), 2)).join('');
 
 module.exports.map = function(file, emit){
   var data = file.buffer.toString('binary');
@@ -18,24 +18,29 @@ module.exports.map = function(file, emit){
     .forEach(group => {
       var mogebebi = _.flatten(
         group
-        .filter(row => row[6] && row[7] && row[8] && row[10])
-        .map(row => row[7].trim().split('/')
-             .map(skesi => ({
-               n: formatDate(new Date(row[6])) + skesi.trim()[0] + row[10],
-               dabDge: row[6],
-               skesi: skesi.trim(),
-               mama: row[10]
-             })))
+          .filter(row => row[6] && row[7] && row[8] && row[10])
+          .map(row => row[7].trim().split('/')
+               .map(skesi => ({
+                 n: formatDate(new Date(row[6])) + skesi.trim()[0] + row[10],
+                 dabDge: row[6],
+                 skesi: skesi.trim(),
+                 mama: row[10],
+                 deda: group[0][1]
+               })))
       );
       emit(group[0][1], {
         skesi: group[0][2],
         dabDge: group[0][3],
-        shvilebi: mogebebi.map(function(m){ return m.n; })
+        ojakhebi: _.groupBy(mogebebi, m => m.mama),
+        shvilebi: mogebebi.map(m => m.n)
       });
-      mogebebi.forEach(function(m){
-        emit(m.mama, {
-          shvilebi: [m.n]
+      _.uniq(_.pluck(mogebebi, 'mama')).forEach(mkey => {
+        emit(mkey, {
+          ojakhebi: _.groupBy(mogebebi.filter(m2 => m2.mama === mkey), m => m.deda),
+          shvilebi: mogebebi.filter(m2 => m2.mama === mkey).map(m => m.n)
         });
+      });
+      mogebebi.forEach(m => {
         emit(m.n, {
           skesi: m.skesi,
           dabDge: m.dabDge,
@@ -47,11 +52,24 @@ module.exports.map = function(file, emit){
 };
 module.exports.reduce = function(key, values){
   var shvilebi = _.flatten(_.map(values, function(x){ return x.shvilebi || [];}));
+  var ojakhebi = {};
+  values.forEach(v => {
+    if(!v.ojakhebi) return;
+    Object.keys(v.ojakhebi).forEach(key => {
+      if(ojakhebi[key]){
+        ojakhebi[key] = ojakhebi[key].concat(v.ojakhebi[key]);
+      } else {
+        ojakhebi[key] = v.ojakhebi[key];
+      }
+    });
+  });
+
   return {
     dabDge: _.last(_.filter(_.pluck(values, 'dabDge'))),
     mama: _.last(_.filter(_.pluck(values, 'mama'))),
     deda: _.last(_.filter(_.pluck(values, 'deda'))),
     skesi: _.last(_.filter(_.pluck(values, 'skesi'))),
+    ojakhebi: ojakhebi,
     shvilebi: shvilebi
   };
 };

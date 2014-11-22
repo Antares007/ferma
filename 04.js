@@ -16,8 +16,9 @@ var xlsxexport = require('./xlsx-export.js');
 
 var jSDateToExcelDate = function (inDate) {
   var returnDateTime = 25569.0 + ((inDate.getTime() ) / (1000 * 60 * 60 * 24));
-  return returnDateTime;//.toString().substr(0,20);
+  return returnDateTime; //.toString().substr(0,20);
 };
+
 // =IF(OR(MONTH(NOW())<MONTH(C2),AND(MONTH(NOW())=MONTH(C2),DAY(NOW())<DAY(C2))),YEAR(NOW())-YEAR(C2)-1,YEAR(NOW())-YEAR(C2))
 process.stdin
   .pipe(split2())

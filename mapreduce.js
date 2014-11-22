@@ -11,6 +11,8 @@ var split2 = require('split2');
 var path = require('path');
 var t = require('through2');
 
+var mr = require(argv.mrscript);
+
 process.stdin
   .pipe(split2())
   .pipe(t.obj(function(filePath, enc, next){
@@ -24,7 +26,6 @@ process.stdin
     });
   }))
   .pipe((function(){
-    var mr = require(argv.mrscript);
     var emitedValues = {};
     var emit = function(key, value) {
       if(!emitedValues[key]) {
@@ -42,15 +43,16 @@ process.stdin
     });
   })())
   .pipe(t.obj(function(emitedValues, enc, next){
-    Object.keys(emitedValues)
-      .map(function(key) {
-        return {
-          path: path.join(argv.outDir, key + '.json'),
-          buffer: new Buffer(JSON.stringify(emitedValues[key]) + '\n', 'utf8')
-        };
-      })
-      .forEach(this.push.bind(this));
-    next();
+      var transform = mr.transform || function(key, value){ return value; };
+      Object.keys(emitedValues)
+        .map(function(key) {
+          return {
+            path: path.join(argv.outDir, key + '.json'),
+            buffer: new Buffer(JSON.stringify(transform(key, emitedValues[key])) + '\n', 'utf8')
+          };
+        })
+        .forEach(this.push.bind(this));
+      next();
   }))
   .pipe(t.obj(function(file, enc, next){
     var ds =  this;

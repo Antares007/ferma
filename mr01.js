@@ -21,7 +21,7 @@ module.exports.map = function(file, emit){
           .filter(row => row[6] && row[7] && row[8] && row[10])
           .map(row => row[7].trim().split('/')
                .map(skesi => ({
-                 n: formatDate(new Date(row[6])) + skesi.trim()[0] + row[10],
+                 n: row[9] || (formatDate(new Date(row[6])) + skesi.trim()[0] + row[10]),
                  dabDge: row[6],
                  skesi: skesi.trim(),
                  mama: row[10],
@@ -72,4 +72,14 @@ module.exports.reduce = function(key, values){
     ojakhebi: ojakhebi,
     shvilebi: shvilebi
   };
+};
+module.exports.transform = function(key, value){
+  value.ojakhebi = value.ojakhebi || {};
+  value.shvilebi = value.shvilebi || [];
+  value.mama = value.mama || 'adam';
+  value.deda = value.deda || 'eva';
+  value.dabDge = value.dabDge || new Date(Date.UTC(2008,0,1));
+  value.skesi = value.skesi || 'ხარი';
+  value.n = key;
+  return value;
 };

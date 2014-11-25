@@ -13,6 +13,9 @@ find out/genetika -type f | ./mapreduce.js --outDir ../ferma-web --mrscript ./mr
 mkdir out/mdgomareoba
 find out/baratebi -type f | ./mapreduce.js --outDir out/mdgomareoba --mrscript ./mrfuri.js > /dev/null
 
+mkdir out/raodenobebi
+find out/baratebi -type f | ./mapreduce.js --outDir out/raodenobebi --mrscript ./mrraodenobebi.js > /dev/null
+
 mkdir out/report
 find out/ -type f | ./mapreduce.js --outDir out/report --mrscript ./mrmerge.js > /dev/null
 

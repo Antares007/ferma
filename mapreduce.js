@@ -43,16 +43,16 @@ process.stdin
     });
   })())
   .pipe(t.obj(function(emitedValues, enc, next){
-      var transform = mr.transform || function(key, value){ return value; };
-      Object.keys(emitedValues)
-        .map(function(key) {
-          return {
-            path: path.join(argv.outDir, key + '.json'),
-            buffer: new Buffer(JSON.stringify(transform(key, emitedValues[key])) + '\n', 'utf8')
-          };
-        })
-        .forEach(this.push.bind(this));
-      next();
+    var transform = mr.transform || function(key, value){ return value; };
+    Object.keys(emitedValues)
+      .map(function(key) {
+        return {
+          path: path.join(argv.outDir, key + '.json'),
+          buffer: new Buffer(JSON.stringify(transform(key, emitedValues[key])) + '\n', 'utf8')
+        };
+      })
+      .forEach(this.push.bind(this));
+    next();
   }))
   .pipe(t.obj(function(file, enc, next){
     var ds =  this;

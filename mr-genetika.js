@@ -1,13 +1,4 @@
 var _ = require('lodash');
-var xlsx = require('./xlsx-importer');
-
-var padLeft = (value, length) =>
-  value.toString().length < length ?  padLeft("0" + value, length) : value;
-var formatDate = (d) => [
-    d.getUTCFullYear(),
-    d.getUTCMonth() + 1,
-    d.getUTCDate()
-  ].map(x => padLeft(x.toString(), 2)).join('');
 
 module.exports.map = function(file, emit){
   var value = JSON.parse(file.buffer.toString('utf8'));
